@@ -12,7 +12,7 @@ from wallet.wallet import WalletSendCommand
 
 from command import Command
 from commands.help import CommandHelp
-from commands.address import CommandAddress
+from commands.deposit import CommandDeposit
 from commands.withdraw import CommandWithdraw
 from commands.give import CommandGive
 from commands.leaderboard import CommandLeaderboard
@@ -28,11 +28,12 @@ glob.config_default = {
         "name": "Dogebot",
     },
     "crypto": {
-        "account": "discord-dogecoin-" + base64.b32encode(glob.random.randbytes(20)).decode("utf-8"),
         "rpcuser": "",
         "rpcpassword": "",
         "rpcconnect": "http://127.0.0.1:22555",
         "mintransactions": 8,
+        "walletpassword": "",
+        "fee": 1,
     },
 }
 
@@ -57,9 +58,6 @@ if not 'discord' in glob.config:
 if not 'crypto' in glob.config:
     writeConfigTemplate()
 
-if not 'account' in glob.config['crypto']:
-    writeConfigTemplate()
-
 if not 'rpcuser' in glob.config['crypto']:
     print("Cannot run without username")
     exit(1)
@@ -70,6 +68,10 @@ if not 'rpcpassword' in glob.config['crypto']:
 
 if not 'token' in glob.config['discord'] or glob.config['discord']['token'] == "":
     print("Cannot run without discord token")
+    exit(1)
+
+if not 'fee' in glob.config['crypto']:
+    print("Cannot run without fee")
     exit(1)
 
 if 'prefix' in glob.config['discord']:
@@ -84,12 +86,15 @@ if 'rpcconnect' in glob.config['crypto']:
 if 'mintransactions' in glob.config['crypto']:
     glob.mintransactions = glob.config['crypto']
 
+if 'walletpassword' in glob.config['crypto']:
+    glob.walletpassword = glob.config['crypto']['walletpassword']
+
+glob.fee = glob.config['crypto']['fee']
 glob.rpcauth = base64.b64encode("{0}:{1}".format(glob.config['crypto']['rpcuser'], glob.config['crypto']['rpcpassword']).encode('utf-8')).decode('utf-8')
-glob.account = glob.config['crypto']['account']
 
 glob.commands = [
     CommandHelp(),
-    CommandAddress(),
+    CommandDeposit(),
     CommandWithdraw(),
     CommandGive(),
     CommandLeaderboard(),

@@ -2,6 +2,8 @@
 import os
 import glob
 
+from discord import Embed
+
 from wallet.log import *
 from wallet.account import *
 from wallet.wallet import *
@@ -10,11 +12,11 @@ from wallet.user import *
 users = {}
 total = 0
 free = 0
-blockhash_latest = ""
+txid_latest = ""
 
 async def BalanceInit():
 
-    global blockhash_latest
+    global txid_latest
     global total
     global free
 
@@ -30,8 +32,8 @@ async def BalanceInit():
     free = await WalletGetBalance() - total
 
     try:
-        with open("db/blockhash_latest", "r") as f:
-            blockhash_latest = f.read().replace("\n", "").replace("\r", "")
+        with open("db/txid_latest", "r") as f:
+            txid_latest = f.read().replace("\n", "").replace("\r", "")
     except:
         pass
 
@@ -45,6 +47,15 @@ def BalanceGet(uid: int):
         }
 
     return users[uid]['balance']
+
+def BalanceGetAll():
+    return users
+
+def BalanceRemove(uid: int, amount: int):
+
+    balance = BalanceGet(uid)
+    users[uid]['balance'] = balance - amount
+    AccountWrite(uid, users[uid])
 
 def BalanceTransfer(uid_from: int, uid_to: int, amount: int):
     
@@ -76,14 +87,17 @@ def BalanceTransfer(uid_from: int, uid_to: int, amount: int):
 
     return True
 
-def BalanceCalculateAmount(amount):
+def BalanceCalculateAmount(amount,dorng=True):
 
-    if amount == "roll":
-        return glob.random.randrange(1, 6)
-    if amount == "megaroll":
-        return glob.random.randrange(6, 36)
-    if amount == "gigaroll":
-        return glob.random.randrange(36, 216)
+    if(dorng):
+        
+        if amount == "roll":
+            return glob.random.randrange(1, 6)
+        if amount == "megaroll":
+            return glob.random.randrange(6, 36)
+        if amount == "gigaroll":
+            return glob.random.randrange(36, 216)
+    
     if amount == "all":
         return -1
     
@@ -111,7 +125,6 @@ async def BalanceGetAddress(uid: int):
     if not "address" in user:
         changed = True
         user["address"] = await WalletGenerateAddress()
-        user["recieved"] = 0
 
         if user["address"] is None:
             return None
@@ -124,7 +137,7 @@ async def BalanceGetAddress(uid: int):
 
 async def BalanceUpdate(client):
 
-    global blockhash_latest
+    global txid_latest
     global total
 
     page = 0
@@ -132,19 +145,21 @@ async def BalanceUpdate(client):
     running = True
 
     transactions = await WalletGetTransactions(pagesize, page * pagesize)
-    blockhash_new = ""
+    txid_new = ""
 
     # traverse in order most recent to least recent
     while True:
 
-        print("Searching for blockhashes... Page", page)
-
         running = len(transactions) > 0
 
         for transaction in reversed(transactions):
-           
-            # stop when the traversal gets to the last blockhash
-            if transaction['blockhash'] == blockhash_latest:
+
+            t_address = transaction['address']
+            t_amount = transaction['amount']
+            t_txid = transaction['txid']
+
+            # stop when the traversal gets to the last transaction
+            if t_txid == txid_latest:
                 running = False;
                 break;
 
@@ -152,22 +167,19 @@ async def BalanceUpdate(client):
             if transaction['confirmations'] < glob.mintransactions:
                 continue
             
-            # set the newest trustworthy blockhash
-            if blockhash_new == "":
-                blockhash_new = transaction['blockhash']
+            # set the newest trustworthy transaction
+            if txid_new == "":
+                txid_new = t_txid
 
             # skip all transactions that aren't recieving money, we don't care about this
             if transaction['category'] != "receive":
                 continue
 
-            t_amount = transaction['amount']
             total += t_amount
 
-            print("Found blockhash {0} with value {1} DOGE, transaction ID {2}, and address {3}".format(transaction['blockhash'], transaction['amount'], transaction['txid'], transaction['address']))
+            print("Found block with txid {0} with value {1} DOGE and address {2}".format(t_txid, t_amount, t_address))
             
             # add the transaction amount to the right user account
-            t_address = transaction['address']
-
             for uid in users:
                 
                 user = users[uid]
@@ -176,19 +188,15 @@ async def BalanceUpdate(client):
                     
                     # add the balance and update
                     Log("deposit", t_amount, address=t_address, uid_to=uid)
-                    user.balance += t_amount
+                    user['balance'] += t_amount
                     AccountWrite(uid, user)
 
                     # message the user about the new balance, if possible
                     try:
                     
                         d_user = await client.fetch_user(uid)
-
-                        # do this so we can still message the user even if we don't have any mutual servers
-                        if not d_user.is_friend():
-                            await d_user.send_friend_request()
                         
-                        await d_user.send(embed=Embed(title="New deposit", description="A deposit of {0} DOGE has been added to your account. The transaction ID of this deposit is {1}.".format(t_amount, transaction['txid'])))
+                        await d_user.send(embed=Embed(title="New deposit", description="A deposit of {0} DOGE has been added to your account. You can view this transaction [here](https://dogechain.info/tx/{1}).".format(t_amount, t_txid)))
 
                     except:
                         print("Failed to message user transaction")
@@ -202,10 +210,10 @@ async def BalanceUpdate(client):
         page += 1
         transactions = await WalletGetTransactions(pagesize, page * pagesize)
    
-    # only update the latest blockhash if its been changed
-    if blockhash_new != "":
-        blockhash_latest = blockhash_new
+    # only update the latest transaction if its been changed
+    if txid_new != "":
+        txid_latest = txid_new
     
-        with open("db/blockhash_latest", "w") as f:
-            f.write(blockhash_latest)
+        with open("db/txid_latest", "w") as f:
+            f.write(txid_latest)
 

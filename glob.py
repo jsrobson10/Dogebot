@@ -5,8 +5,10 @@ commands = []
 name = "Dogebot"
 rpcauth = ""
 rpcconnect = "http://127.0.0.1:22555"
-account = ""
+walletpassword = ""
 bot_id = ""
 random = None
 mintransactions = 8
 ready = False
+fee = 0
+

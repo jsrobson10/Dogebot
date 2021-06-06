@@ -7,12 +7,12 @@ from wallet.balance import *
 from command import Command
 from discord import File, Embed
 
-class CommandAddress(Command):
+class CommandDeposit(Command):
 
     def __init__(self):
         
-        self.setName("address")
-        self.setDesc("Get your wallet dogecoin address for you to transfer some dogecoin into.")
+        self.setName("deposit")
+        self.setDesc("Get your dogecoin address for you to transfer some dogecoin into. Transfer speeds may take a while.")
 
     async def run(self, message, command):
         

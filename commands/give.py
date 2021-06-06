@@ -10,7 +10,7 @@ class CommandGive(Command):
     def __init__(self):
         
         self.setName("give")
-        self.setDesc("Give some of your dogecoin to someone on the server. To use this, @mention or reply to the user you want to give to and type the amount of dogecoins you want to give. Typing 'all' will give all of your dogecoins. Typing 'roll' as the input will donate 1-6 dogecoins, 'megaroll' 6-36 dogecoins, and 'gigaroll' 36-216 dogecoins.")
+        self.setDesc("Give some of your dogecoin to someone on the server. To use this @mention the user you want to give to and type the amount of dogecoins you want to give. Typing 'all' will give all of your dogecoins. Typing 'roll' as the input will donate 1-6 dogecoins, 'megaroll' 6-36 dogecoins, and 'gigaroll' 36-216 dogecoins.")
         self.setUsage("@user amount")
 
     async def run(self, message, command):
