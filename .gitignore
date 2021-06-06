@@ -1,0 +1,7 @@
+
+env
+requirements.txt
+__pycache__
+
+db
+config.json
