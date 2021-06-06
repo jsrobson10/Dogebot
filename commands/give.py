@@ -28,16 +28,20 @@ class CommandGive(Command):
 
         uid = int(mention[2:-1])
 
+        if uid == message.author.id:
+            await message.channel.send(embed=Embed(title="Send coins", description="You cannot send coins to yourself"))
+            return
+
         if uid != glob.bot_id:
 
             user_t = await UserGet(message.guild, uid)
 
             if user_t is None:
-                await message.channel.send(embed=Embed(title="Send coins", description="Cannot send coins to a user that is not in this server"))
+                await message.channel.send(embed=Embed(title="Send coins", description="You cannot send coins to a user that is not in this server"))
                 return
 
             if user_t.bot and user_t.id != glob.bot_id:
-                await message.channel.send(embed=Embed(title="Send coins", description="Cannot send coins to a bot"))
+                await message.channel.send(embed=Embed(title="Send coins", description="You cannot send coins to a bot"))
                 return
 
         amount = BalanceCalculateAmount(amount_str)
@@ -52,7 +56,7 @@ class CommandGive(Command):
             amount = BalanceGet(message.author.id)
 
             if amount == 0:
-                await message.channel.send(embed=Embed(title="Send coins", description="Cannot send coins if your wallet is empty"))
+                await message.channel.send(embed=Embed(title="Send coins", description="You cannot send coins if your wallet is empty"))
                 return
 
         if BalanceTransfer(message.author.id, uid, amount):

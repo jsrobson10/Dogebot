@@ -8,7 +8,7 @@ rpcconnect = "http://127.0.0.1:22555"
 walletpassword = ""
 bot_id = ""
 random = None
-mintransactions = 8
+mintransactions = 6
 ready = False
 fee = 0
 

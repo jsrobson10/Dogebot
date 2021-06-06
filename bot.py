@@ -15,7 +15,7 @@ from commands.help import CommandHelp
 from commands.deposit import CommandDeposit
 from commands.withdraw import CommandWithdraw
 from commands.give import CommandGive
-from commands.leaderboard import CommandLeaderboard
+from commands.richest import CommandRichest
 from commands.balance import CommandBalance
 from commands.donate import CommandDonate
 
@@ -31,7 +31,7 @@ glob.config_default = {
         "rpcuser": "",
         "rpcpassword": "",
         "rpcconnect": "http://127.0.0.1:22555",
-        "mintransactions": 8,
+        "mintransactions": 6,
         "walletpassword": "",
         "fee": 1,
     },
@@ -84,7 +84,7 @@ if 'rpcconnect' in glob.config['crypto']:
     glob.rpcconnect = glob.config['crypto']['rpcconnect']
 
 if 'mintransactions' in glob.config['crypto']:
-    glob.mintransactions = glob.config['crypto']
+    glob.mintransactions = glob.config['crypto']['mintransactions']
 
 if 'walletpassword' in glob.config['crypto']:
     glob.walletpassword = glob.config['crypto']['walletpassword']
@@ -97,7 +97,7 @@ glob.commands = [
     CommandDeposit(),
     CommandWithdraw(),
     CommandGive(),
-    CommandLeaderboard(),
+    CommandRichest(),
     CommandBalance(),
     CommandDonate(),
 ]

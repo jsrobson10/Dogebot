@@ -9,7 +9,7 @@ from wallet.account import *
 from wallet.wallet import *
 from wallet.user import *
 
-users = {}
+users = []
 total = 0
 free = 0
 txid_latest = ""
@@ -26,8 +26,9 @@ async def BalanceInit():
     for uid in AccountList():
 
         account = AccountRead(uid)
-        users[int(uid)] = account
-        total += account['balance']
+        users.append(account)
+
+        total += account.getBalance()
 
     free = await WalletGetBalance() - total
 
@@ -39,29 +40,46 @@ async def BalanceInit():
 
     print("{0} has a total of {1} DOGE allocated and {2} DOGE free".format(glob.name, total, free))
 
-def BalanceGet(uid: int):
-    
-    if not uid in users:
-        users[uid] = {
-            "balance": 0,
-        }
+def BalanceGetID(uid: int):
 
-    return users[uid]['balance']
+    for i in range(len(users)):
+        
+        user = users[i]
+
+        if user.getUid() == uid:
+            return i
+    
+    user = Account()
+    user.setUid(uid)
+    users.append(user)
+
+    return len(users) - 1
+
+def BalanceGet(uid: int):
+   
+    i = BalanceGetID(uid)
+
+    return users[i].getBalance()
 
 def BalanceGetAll():
+
     return users
 
 def BalanceRemove(uid: int, amount: int):
 
-    balance = BalanceGet(uid)
-    users[uid]['balance'] = balance - amount
-    AccountWrite(uid, users[uid])
+    i = BalanceGetID(uid)
+    users[i].setBalance(users[i].getBalance() - amount)
+    AccountWrite(users[i])
 
 def BalanceTransfer(uid_from: int, uid_to: int, amount: int):
     
+    # get both account ids
+    id_from = BalanceGetID(uid_from)
+    id_to = BalanceGetID(uid_to)
+
     # get both account balances
-    b_from = BalanceGet(uid_from)
-    b_to = BalanceGet(uid_to)
+    b_from = users[id_from].getBalance()
+    b_to = users[id_to].getBalance()
 
     # transfer failed because not enough balance
     if b_from < amount:
@@ -70,20 +88,20 @@ def BalanceTransfer(uid_from: int, uid_to: int, amount: int):
     if uid_to == glob.bot_id or uid_to == "":
 
         # this is a donation
-        users[uid_from]['balance'] -= amount
-        AccountWrite(uid_from, users[uid_from])
+        users[id_from].setBalance(b_from - amount)
+        AccountWrite(users[id_from])
 
         print("Recieved a donation of {0} DOGE from user with uid {1}".format(amount, uid_from))
 
         return True
 
     # transfer between the 2 accounts
-    users[uid_from]['balance'] -= amount
-    users[uid_to]['balance'] += amount
+    users[id_from].setBalance(b_from - amount)
+    users[id_to].setBalance(b_to + amount)
 
     # update the 2 accounts
-    AccountWrite(uid_from, users[uid_from])
-    AccountWrite(uid_to, users[uid_to])
+    AccountWrite(users[id_from])
+    AccountWrite(users[id_to])
 
     return True
 
@@ -114,24 +132,18 @@ async def BalanceGetAddress(uid: int):
 
     changed = False
 
-    if not uid in users:
+    id = BalanceGetID(uid)
+    user = users[id]
+
+    if user.getAddress() is None:
         changed = True
-        users[uid] = {
-            "balance": 0,
-        }
+        user.setAddress(await WalletGenerateAddress())
 
-    user = users[uid]
-
-    if not "address" in user:
-        changed = True
-        user["address"] = await WalletGenerateAddress()
-
-        if user["address"] is None:
+        if user.getAddress() is None:
             return None
 
-    address = user["address"]
-
-    AccountWrite(uid, user)
+    address = user.getAddress()
+    AccountWrite(user)
 
     return address
 
@@ -180,21 +192,19 @@ async def BalanceUpdate(client):
             print("Found block with txid {0} with value {1} DOGE and address {2}".format(t_txid, t_amount, t_address))
             
             # add the transaction amount to the right user account
-            for uid in users:
+            for user in users:
                 
-                user = users[uid]
-
-                if 'address' in user and user['address'] == t_address:
+                if user.getAddress() is not None and user.getAddress() == t_address:
                     
                     # add the balance and update
-                    Log("deposit", t_amount, address=t_address, uid_to=uid)
-                    user['balance'] += t_amount
-                    AccountWrite(uid, user)
+                    Log("deposit", t_amount, address=t_address, uid_to=user.getUid())
+                    user.setBalance(user.getBalance() + t_amount)
+                    AccountWrite(user)
 
                     # message the user about the new balance, if possible
                     try:
                     
-                        d_user = await client.fetch_user(uid)
+                        d_user = await client.fetch_user(user.getUid())
                         
                         await d_user.send(embed=Embed(title="New deposit", description="A deposit of {0} DOGE has been added to your account. You can view this transaction [here](https://dogechain.info/tx/{1}).".format(t_amount, t_txid)))
 
