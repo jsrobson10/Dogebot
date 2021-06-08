@@ -270,8 +270,8 @@ async def BalanceUpdate(client):
                     user.setBalance(user.getBalance() + t_amount)
                     AccountWrite(user)
                     
-                    BalanceShiftTotal(amount)
-                    BalanceShiftBalance(amount)
+                    BalanceShiftTotal(t_amount)
+                    BalanceShiftBalance(t_amount)
                     BalanceDisplay()
 
                     # message the user about the new balance, if possible
