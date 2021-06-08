@@ -1,12 +1,16 @@
 
 import os
 import json
+import time
+
+TIME_DAY_SECS = 60 * 60 * 24
 
 class Account:
 
     _balance: float = 0
     _address: str = None
     _uid: int = 0
+    _daily: int = 0
 
     def __init__(self, data:str=None):
         
@@ -33,6 +37,12 @@ class Account:
             if t is int:
                 self._id = d
 
+        if 'daily' in data_s:
+            d = data_s['daily']
+            t = type(d)
+            if t is int or t is float:
+                self._daily = d
+
     def setBalance(self, balance: float):
         self._balance = float(balance)
 
@@ -45,6 +55,19 @@ class Account:
     def getBalance(self):
         return self._balance
 
+    def claimDaily(self):
+
+        now = time.time()
+        end = self._daily + TIME_DAY_SECS
+
+        if now >= end:
+            
+            self._daily = now
+            
+            return 0
+
+        return end - now
+
     def getAddress(self):
         return self._address
 
@@ -52,10 +75,10 @@ class Account:
         return self._uid
 
     def __repr__(self):
-        return "Account(balance={0}, address={1}, uid={2})".format(self._balance, self._address, self._uid, type(self._uid))
+        return "Account(balance={0}, address={1}, uid={2})".format(self._balance, self._address, self._uid)
 
     def serialize(self):
-        return json.dumps({'balance': self._balance, 'address': self._address, 'uid': self._uid})
+        return json.dumps({'balance': self._balance, 'address': self._address, 'uid': self._uid, 'daily': self._daily})
 
 def AccountList():
 

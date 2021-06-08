@@ -17,12 +17,12 @@ def LogInit():
 
     else:
         log = open("db/log.csv", "a")
-        log.write('"Time","User ID (From)","User ID (To)","Address","Amount (DOGE)"\n')
+        log.write('"Time","Method","User ID (From)","User ID (To)","Address","Amount (DOGE)","Fee (DOGE)"\n')
         log.flush()
 
-def Log(label, amount, uid_from="", uid_to="", address=""):
+def Log(label, amount, *, uid_from="", uid_to="", address="", fee=""):
     
     time = datetime.today().strftime("%d/%m/%Y %H:%M:%S");
 
-    log.write('"{}","{}","{}","{}","{}",{}\n'.format(time, label, uid_from, uid_to, address, amount))
+    log.write('"{0}","{1}",{2},{3},"{4}",{5},{6}\n'.format(time, label, uid_from, uid_to, address, amount, fee))
     log.flush()

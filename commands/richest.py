@@ -21,20 +21,39 @@ class CommandRichest(Command):
 
         limit = 10
         users = BalanceGetAll()
-        msg = ""
+        total = 0.0
         i = 0
         
+        e = Embed(title="{0} Richest Members".format(message.guild.name))
+
         for user in sorted(users, key=lambda c: c.getBalance(), reverse=True):
 
-            try:
-                await message.guild.fetch_member(user.getUid())
-            except:
+            user_c = message.guild.get_member(user.getUid())
+
+            if user_c is None:
                 continue
 
-            if i >= limit:
-                break
-
             i += 1
-            msg += "{0} - <@{1}> {2} DOGE\n\n".format(i, user.getUid(), user.getBalance())
-        
-        await message.channel.send(embed=Embed(title="Leaderboard", description=msg))
+            total += user.getBalance()
+
+            if i <= limit:
+
+                name = user_c.nick
+
+                if name is None:
+                    name = user_c.name
+
+                n = "{0} -".format(i)
+
+                if i == 1:
+                    n = ":first_place:"
+                elif i == 2:
+                    n = ":second_place:"
+                elif i == 3:
+                    n = ":third_place:"
+
+                e.add_field(name="{0} {1}".format(n, name), value="{0} DOGE".format(user.getBalance()), inline=False)
+
+        e.insert_field_at(0, name=":bank: Server Total", value="{0} DOGE".format(total))
+
+        await message.channel.send(embed=e)

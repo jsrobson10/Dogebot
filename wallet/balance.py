@@ -7,9 +7,9 @@ from discord import Embed
 from wallet.log import *
 from wallet.account import *
 from wallet.wallet import *
-from wallet.user import *
 
 users = []
+balance = 0
 total = 0
 free = 0
 txid_latest = ""
@@ -17,9 +17,11 @@ txid_latest = ""
 async def BalanceInit():
 
     global txid_latest
+    global balance
     global total
     global free
 
+    balance = 0
     total = 0
     free = 0
     
@@ -30,7 +32,13 @@ async def BalanceInit():
 
         total += account.getBalance()
 
-    free = await WalletGetBalance() - total
+    try:
+        with open("db/balance", "r") as f:
+            balance = float(f.read())
+    except:
+        pass
+
+    free = balance - total
 
     try:
         with open("db/txid_latest", "r") as f:
@@ -38,7 +46,11 @@ async def BalanceInit():
     except:
         pass
 
-    print("{0} has a total of {1} DOGE allocated and {2} DOGE free".format(glob.name, total, free))
+    BalanceDisplay()
+
+def BalanceDisplay():
+
+    print("{0} has a total of {1} DOGE allocated and {2} DOGE free".format(glob.name, balance, free))
 
 def BalanceGetID(uid: int):
 
@@ -71,8 +83,50 @@ def BalanceRemove(uid: int, amount: int):
     users[i].setBalance(users[i].getBalance() - amount)
     AccountWrite(users[i])
 
-def BalanceTransfer(uid_from: int, uid_to: int, amount: int):
+def BalanceShiftBalance(amount: float):
     
+    global balance
+    global free
+
+    balance += amount
+    free += amount
+
+    try:
+        with open("db/balance", "w") as f:
+            f.write(str(balance))
+    except:
+        if not os.path.exists("db"):
+            os.makedirs("db")
+            BalanceShiftTotal(0)
+        else:
+            raise
+
+def BalanceShiftTotal(amount: float):
+    
+    global total
+    global free
+
+    total += amount
+    free -= amount
+
+def BalanceTransfer(display, uid_from: int, uid_to: int, amount: int):
+    
+    if uid_to == glob.bot_id or uid_to == "":
+
+        # this is a donation
+        i = BalanceGetID(uid_from)
+        users[i].setBalance(users[i].getBalance() - amount)
+        AccountWrite(users[i])
+
+        BalanceShiftTotal(-amount)
+        BalanceShiftBalance(-amount)
+
+        print("Recieved a donation of {0} DOGE from {1} with discord uid {2}".format(amount, display, uid_from))
+        
+        BalanceDisplay()
+
+        return True
+
     # get both account ids
     id_from = BalanceGetID(uid_from)
     id_to = BalanceGetID(uid_to)
@@ -85,16 +139,6 @@ def BalanceTransfer(uid_from: int, uid_to: int, amount: int):
     if b_from < amount:
         return False
 
-    if uid_to == glob.bot_id or uid_to == "":
-
-        # this is a donation
-        users[id_from].setBalance(b_from - amount)
-        AccountWrite(users[id_from])
-
-        print("Recieved a donation of {0} DOGE from user with uid {1}".format(amount, uid_from))
-
-        return True
-
     # transfer between the 2 accounts
     users[id_from].setBalance(b_from - amount)
     users[id_to].setBalance(b_to + amount)
@@ -104,6 +148,33 @@ def BalanceTransfer(uid_from: int, uid_to: int, amount: int):
     AccountWrite(users[id_to])
 
     return True
+
+def BalanceClaimDaily(duid: str):
+    
+    global free
+
+    uid = BalanceGetID(duid)
+    user = users[uid]
+
+    if free <= 0:
+        return (0, 0)
+
+    left = user.claimDaily()
+
+    if left <= 0:
+        
+        amount = free / glob.random.randrange(glob.dailyweightmin, glob.dailyweightmax)
+        user.setBalance(user.getBalance() + amount)
+
+        AccountWrite(user)
+        BalanceShiftTotal(amount)
+        BalanceDisplay()
+
+        Log("reward", amount, uid_to=duid, fee=-amount)
+
+        return (amount, left)
+    
+    return (0, left)
 
 def BalanceCalculateAmount(amount,dorng=True):
 
@@ -150,7 +221,6 @@ async def BalanceGetAddress(uid: int):
 async def BalanceUpdate(client):
 
     global txid_latest
-    global total
 
     page = 0
     pagesize = 64
@@ -187,19 +257,22 @@ async def BalanceUpdate(client):
             if transaction['category'] != "receive":
                 continue
 
-            total += t_amount
-
-            print("Found block with txid {0} with value {1} DOGE and address {2}".format(t_txid, t_amount, t_address))
-            
             # add the transaction amount to the right user account
             for user in users:
                 
                 if user.getAddress() is not None and user.getAddress() == t_address:
                     
+                    print("Found block with txid {0} with value {1} DOGE and address {2}".format(t_txid, t_amount, t_address))
+                    
                     # add the balance and update
                     Log("deposit", t_amount, address=t_address, uid_to=user.getUid())
+                    
                     user.setBalance(user.getBalance() + t_amount)
                     AccountWrite(user)
+                    
+                    BalanceShiftTotal(amount)
+                    BalanceShiftBalance(amount)
+                    BalanceDisplay()
 
                     # message the user about the new balance, if possible
                     try:

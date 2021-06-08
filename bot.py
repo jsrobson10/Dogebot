@@ -19,6 +19,7 @@ from commands.give import CommandGive
 from commands.richest import CommandRichest
 from commands.balance import CommandBalance
 from commands.donate import CommandDonate
+from commands.daily import CommandDaily
 
 glob.random = secrets.SystemRandom()
 
@@ -27,6 +28,8 @@ glob.config_default = {
         "token": "",
         "prefix": "+",
         "name": "Dogebot",
+        "dailyweightmin": 100,
+        "dailyweightmax": 200,
     },
     "crypto": {
         "rpcuser": "",
@@ -34,6 +37,7 @@ glob.config_default = {
         "rpcconnect": "http://127.0.0.1:22555",
         "mintransactions": 6,
         "walletpassword": "",
+        "feedist": 0.5,
         "fee": 1,
     },
 }
@@ -90,6 +94,18 @@ if 'mintransactions' in glob.config['crypto']:
 if 'walletpassword' in glob.config['crypto']:
     glob.walletpassword = glob.config['crypto']['walletpassword']
 
+if 'dry' in glob.config['crypto']:
+    glob.dry = glob.config['crypto']['dry']
+
+if 'feedist' in glob.config['crypto']:
+    glob.feedist = glob.config['crypto']['feedist']
+
+if 'dailyweightmin' in glob.config['discord']:
+    glob.feedist = glob.config['discord']['dailyweightmin']
+
+if 'dailyweightmax' in glob.config['discord']:
+    glob.feedist = glob.config['discord']['dailyweightmax']
+
 glob.fee = glob.config['crypto']['fee']
 glob.rpcauth = base64.b64encode("{0}:{1}".format(glob.config['crypto']['rpcuser'], glob.config['crypto']['rpcpassword']).encode('utf-8')).decode('utf-8')
 
@@ -97,6 +113,7 @@ glob.commands = [
     CommandHelp(),
     CommandDeposit(),
     CommandWithdraw(),
+    CommandDaily(),
     CommandGive(),
     CommandRichest(),
     CommandBalance(),
@@ -145,7 +162,11 @@ class DiscordDogecoin(discord.Client):
             # only update every minute
             await asyncio.sleep(60)
 
-client = DiscordDogecoin()
+if glob.dry:
+    print("Running in dry mode")
+
+intents = discord.Intents(messages=True, guilds=True, members=True)
+client = DiscordDogecoin(intents=intents)
 
 LogInit()
 
@@ -155,6 +176,6 @@ asyncio.ensure_future(client.update_loop())
 
 client.run(glob.config['discord']['token'])
 
-loop.run_forever()
-loop.close()
+#loop.run_forever()
+#loop.close()
 

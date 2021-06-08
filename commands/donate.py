@@ -1,5 +1,6 @@
 
 import glob
+
 from command import Command
 from discord import Embed
 
@@ -17,7 +18,7 @@ class CommandDonate(Command):
     async def run(self, message, command):
         
         if len(command) != 2:
-            await self.error(message)
+            await self.help(message)
             return
 
         amount_str = command[1]
@@ -26,7 +27,7 @@ class CommandDonate(Command):
 
         # invalid amount
         if amount == None:
-            await self.error(message)
+            await self.help(message)
             return
 
         # send all
@@ -37,7 +38,7 @@ class CommandDonate(Command):
                 await message.channel.send(embed=Embed(title="Coin donation", description="Cannot donate coins if your wallet is empty"))
                 return
 
-        if BalanceTransfer(message.author.id, "", amount):
+        if BalanceTransfer(message.author, message.author.id, "", amount):
 
             Log("donate", amount, uid_from=message.author.id)
 

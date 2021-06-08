@@ -46,10 +46,13 @@ class CommandWithdraw(Command):
 
             user = BalanceRemove(message.author.id, amount)
             
-            Log("withdraw", uid_from=message.author.id, address=address, amount=final_amount)            
-            Log("fee", uid_from=message.author.id, address=address, amount=glob.fee)
+            Log("withdraw", uid_from=message.author.id, address=address, amount=final_amount, fee=glob.fee)
+            BalanceShiftBalance(glob.fee * glob.feedist - amount) # do this to collet DOGE and feed DOGE back into the system
+            BalanceShiftTotal(-amount)
 
-            await message.channel.send(embed=Embed(title="Dogecoin withdraw", description="Successfully deposited {0} DOGE to {1}. You can view the transaction [here](https://dogechain.info/tx/{2})".format(amount, address, res['result'])))
+            await message.channel.send(embed=Embed(title="Dogecoin withdraw", description="Successfully deposited {0} DOGE to {1}. You can view the transaction [here](https://dogechain.info/tx/{2}).".format(amount, address, res['result'])))
+
+            BalanceDisplay()
 
         else:
             if 'error' in res and type(res['error']) is dict and 'message' in res['error'] and type(res['error']['message']) is str:

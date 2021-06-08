@@ -1,4 +1,6 @@
 
+import glob
+
 from discord import Embed
 from command import Command
 
@@ -16,14 +18,14 @@ class CommandGive(Command):
     async def run(self, message, command):
         
         if len(command) != 3:
-            await self.error(message)
+            await self.help(message)
             return
 
         mention = command[1]
         amount_str = command[2]
 
         if not (mention.startswith('<@') and mention.endswith('>')):
-            await self.error(message)
+            await self.help(message)
             return
 
         uid = int(mention[2:-1])
@@ -34,13 +36,13 @@ class CommandGive(Command):
 
         if uid != glob.bot_id:
 
-            user_t = await UserGet(message.guild, uid)
+            user_t = message.guild.get_member(uid)
 
             if user_t is None:
                 await message.channel.send(embed=Embed(title="Send coins", description="You cannot send coins to a user that is not in this server"))
                 return
 
-            if user_t.bot and user_t.id != glob.bot_id:
+            if user_t.bot and not glob.dry:
                 await message.channel.send(embed=Embed(title="Send coins", description="You cannot send coins to a bot"))
                 return
 
@@ -48,7 +50,7 @@ class CommandGive(Command):
 
         # invalid
         if amount == None:
-            await self.error(message)
+            await self.help(message)
             return
 
         # send all
@@ -59,7 +61,7 @@ class CommandGive(Command):
                 await message.channel.send(embed=Embed(title="Send coins", description="You cannot send coins if your wallet is empty"))
                 return
 
-        if BalanceTransfer(message.author.id, uid, amount):
+        if BalanceTransfer(message.author, message.author.id, uid, amount):
 
             if uid == glob.bot_id:
 

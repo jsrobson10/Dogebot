@@ -2,6 +2,7 @@
 import glob
 import requests
 import json
+import glob
 
 async def WalletSendCommand(command: str, *params, silent=False):
 
@@ -24,20 +25,6 @@ async def WalletSendCommand(command: str, *params, silent=False):
 
     return res.json()
 
-async def WalletGetBalance():
-    
-    res = await WalletSendCommand("getbalance")
-
-    if 'result' in res:
-        
-        t = type(res['result'])
-
-        if t is float or t is int:
-
-            return res['result']
-
-    return 0
-
 async def WalletGenerateAddress():
 
     res = await WalletSendCommand("getnewaddress")
@@ -59,6 +46,9 @@ async def WalletGetTransactions(count: int, skip: int):
 
 async def WalletSend(address: str, amount: int):
     
+    if glob.dry:
+        return {'result': 'DRYRUN'}
+
     # not an empty password
     if glob.walletpassword != "":
         await WalletSendCommand("walletpassphrase", glob.walletpassword, 60)

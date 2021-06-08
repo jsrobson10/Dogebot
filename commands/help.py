@@ -33,11 +33,9 @@ class CommandHelp(Command):
 
             return
 
-        desc = ""
+        e = Embed(title="Commands for {0}".format(glob.name))
 
         for command in glob.commands:
-            desc += "{0}{1}  {2}\n\n".format(glob.prefix, command.name, command.desc)
-            
-        e = Embed(title="Commands for {0}".format(glob.name), description=desc)
+            e.add_field(name="{0}{1}".format(glob.prefix, command.name), value="*Usage: {0}{1} {2}_ _*\n{3}".format(glob.prefix, command.name, command.usage, command.desc), inline=False)
 
         await message.channel.send(embed=e)

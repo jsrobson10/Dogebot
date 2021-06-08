@@ -1,6 +1,7 @@
 
 import os
 import qrcode
+import glob
 
 from wallet.balance import *
 
@@ -12,10 +13,32 @@ class CommandDeposit(Command):
     def __init__(self):
         
         self.setName("deposit")
-        self.setDesc("Get your dogecoin address for you to transfer some dogecoin into. Transfer speeds may take a while.")
+        
+        if not glob.dry:
+            self.setDesc("Get your dogecoin address for you to transfer some dogecoin into. Transfer speeds may take a while.")
+
+        else:
+            self.setDesc("[Dry mode] Add new dogecoins into your account.")
+            self.setUsage("amount")
 
     async def run(self, message, command):
-        
+
+        # do this if running in dry mode
+        if glob.dry:
+
+            amount = int(command[1])
+
+            BalanceRemove(message.author.id, -amount)
+            BalanceShiftTotal(amount)
+            BalanceShiftBalance(amount)
+            BalanceDisplay()
+
+            Log("deposit", amount, address="0", uid_to=message.author.id)
+            
+            await message.author.send(embed=Embed(title="New deposit", description="A deposit of {0} DOGE has been added to your account. You can view this transaction [here](https://dogechain.info/tx/{1}).".format(amount, "0")))
+            
+            return
+
         address = await BalanceGetAddress(message.author.id)
 
         if address is None:
