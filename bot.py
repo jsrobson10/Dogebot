@@ -123,7 +123,9 @@ glob.commands = [
 class DiscordDogecoin(discord.Client):
 
     async def on_ready(self):
-    
+
+        self.change_presence(activity=discord.Game(name="{0}help".format(glob.prefix)))
+
         glob.bot_id = self.user.id
         glob.ready = True
 
