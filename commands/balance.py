@@ -30,7 +30,7 @@ class CommandBalance(Command):
             await self.help(message)
             return
 
-        if uid != message.author.id and not await UserInServer(message.guild, uid):
+        if uid != message.author.id and message.guild.get_member(uid) is None:
             await message.channel.send(embed=Embed(title="Account balance", description="Please mention a valid member of this server"))
             return
 

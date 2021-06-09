@@ -111,11 +111,18 @@ def BalanceShiftTotal(amount: float):
 
 def BalanceTransfer(display, uid_from: int, uid_to: int, amount: int):
     
+    # this is a donation
     if uid_to == glob.bot_id or uid_to == "":
 
-        # this is a donation
         i = BalanceGetID(uid_from)
-        users[i].setBalance(users[i].getBalance() - amount)
+        ub = users[i].getBalance()
+        
+        # don't donate if insufficient funds
+        if ub < amount:
+            return False
+
+        # update the balance
+        users[i].setBalance(ub - amount)
         AccountWrite(users[i])
 
         BalanceShiftTotal(-amount)
